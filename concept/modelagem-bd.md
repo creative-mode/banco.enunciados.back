@@ -14,7 +14,7 @@ Para cada simulação efetuada, o sistema deverá ainda guardar o histórico det
 
 ## MER
 
-**anosLetivos** (id, anoInicio, anoFim); </br>
+**anosLetivos** (id, anoInicio, anoFim);
 **trimestres** (id, numero);
 **disciplinas** (id, nome);
 **cursos** (id, nome, descricao);

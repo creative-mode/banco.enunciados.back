@@ -1,0 +1,34 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres_enunciados
+    environment:
+      POSTGRES_DB: banco_enunciados
+      POSTGRES_USER: creativemode
+      POSTGRES_PASSWORD: cr34t1v3-m0d3
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      retries: 5
+
+  app:
+    build: .
+    container_name: banco_enunciados
+    environment:
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres_enunciados:5432/banco_enunciados
+      SPRING_R2DBC_USERNAME: creativemode
+      SPRING_R2DBC_PASSWORD: cr34t1v3-m0d3
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
