@@ -19,14 +19,12 @@ services:
     build: .
     container_name: banco_enunciados
     environment:
-      SPRING_R2DBC_URL: r2dbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+      SPRING_R2DBC_URL: r2dbc:postgresql://${DB_HOST}:5432/${DB_NAME}
       SPRING_R2DBC_USERNAME: ${DB_USER}
       SPRING_R2DBC_PASSWORD: ${DB_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
-      env_file:
-      - .env
     ports:
       - "8080:8080"
     volumes:
