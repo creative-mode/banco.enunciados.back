@@ -1,4 +1,4 @@
-Ao longo de anos, diversas gerações de alunos do Instituto de Telecomunicações (ITEL) enfrentaram um desafio silencioso: o acesso e a organização de enunciados de provas antigas eram sempre complicados, tornando o estudo mais difícil e fragmentado.
+Ao longo de anos, diversas gerações de alunos do **Instituto de Telecomunicações - ITEL** enfrentaram um desafio silencioso: o acesso e a organização de enunciados de provas antigas eram sempre complicados, tornando o estudo mais difícil e fragmentado.
 
 Foi então que o @creativemode, um grupo de jovens estudantes do ITEL conhecidos por sua criatividade e espírito disruptivo, decidiu transformar essa realidade. Eles perceberam que, com a tecnologia certa, seria possível não apenas organizar o passado acadêmico, mas também facilitar o futuro do aprendizado das gerações seguintes de _Wakanda University_.
 
