@@ -18,7 +18,7 @@ public record ApiResponse<T>(
     public static <T> ApiResponse<T> sucesso(T dados, Map<String, Object> metadados) {
         return new ApiResponse<>(true, null, dados, metadados, null);
     }
-    public static ApiResponse<Void> erro(String mensagem, ApiErro erro) {
+    public static <T> ApiResponse<T> erro(String mensagem, ApiErro erro) {
         return new ApiResponse<>(false, mensagem, null, null, erro);
     }
 }
