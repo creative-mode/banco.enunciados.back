@@ -4,4 +4,6 @@ Foi então que o @creativemode, um grupo de jovens estudantes do ITEL conhecidos
 
 O resultado? Um sistema inovador que centraliza enunciados, permite simulações de provas e oferece análises detalhadas de desempenho um módulo de IA que automatiza processos manuais e fornece uma gama de funcionalidades convenientes neste contexto. Uma ferramenta que promete tornar o estudo mais inteligente, eficiente e adaptado às necessidades de cada aluno — transformando o jeito de aprender no ITEL.
 
+Temos a certeza que a iniciativa de transformar um "legado de dificuldades" em uma ferramenta de empoderamento acadêmico tem um peso muito forte.
+
 **Feito por alunos para alunos**.
