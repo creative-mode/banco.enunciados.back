@@ -1,12 +1,11 @@
 package ao.creativemode.kixi.service;
 
-import ao.creativemode.dto.anosletivos.AnosLetivosRequestDTO;
-import ao.creativemode.dto.anosletivos.AnosLetivosResponseDTO;
-import ao.creativemode.model.AnosLetivos;
-import ao.creativemode.repository.AnosLetivosRepository;
+import ao.creativemode.kixi.anosletivos.dto.request.CreateAnosLetivosRequest;
+import ao.creativemode.kixi.anosletivos.dto.request.UpdateAnosLetivosRequest;
+import ao.creativemode.kixi.anosletivos.dto.response.AnosLetivosResponse;
+import ao.creativemode.kixi.model.AnosLetivos;
+import ao.creativemode.kixi.repository.AnosLetivosRepository;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 @Service
 public class AnosLetivosService {
@@ -17,36 +16,36 @@ public class AnosLetivosService {
         this.repository = repository;
     }
 
-    public Flux<AnosLetivosResponseDTO> getAll() {
+
+    public reactor.core.publisher.Flux<AnosLetivosResponse> getAll() {
         return repository.findAll()
-                .map(a -> new AnosLetivosResponseDTO(a.getId(), a.getAnoInicio(), a.getAnoFim()));
+                .map(AnosLetivosResponse::from);
     }
 
-    public Mono<AnosLetivosResponseDTO> getById(Long id) {
+    public reactor.core.publisher.Mono<AnosLetivosResponse> getById(Long id) {
         return repository.findById(id)
-                .map(a -> new AnosLetivosResponseDTO(a.getId(), a.getAnoInicio(), a.getAnoFim()));
+                .map(AnosLetivosResponse::from);
     }
 
-    public Mono<AnosLetivosResponseDTO> create(AnosLetivosRequestDTO dto) {
+    public reactor.core.publisher.Mono<AnosLetivosResponse> create(CreateAnosLetivosRequest dto) {
         AnosLetivos entity = new AnosLetivos();
         entity.setAnoInicio(dto.anoInicio());
         entity.setAnoFim(dto.anoFim());
-
         return repository.save(entity)
-                .map(a -> new AnosLetivosResponseDTO(a.getId(), a.getAnoInicio(), a.getAnoFim()));
+                .map(AnosLetivosResponse::from);
     }
 
-    public Mono<AnosLetivosResponseDTO> update(Long id, AnosLetivosRequestDTO dto) {
+    public reactor.core.publisher.Mono<AnosLetivosResponse> update(Long id, UpdateAnosLetivosRequest dto) {
         return repository.findById(id)
                 .flatMap(existing -> {
-                    existing.setAnoInicio(dto.anoInicio());
-                    existing.setAnoFim(dto.anoFim());
+                    if (dto.anoInicio() != null) existing.setAnoInicio(dto.anoInicio());
+                    if (dto.anoFim() != null) existing.setAnoFim(dto.anoFim());
                     return repository.save(existing);
                 })
-                .map(a -> new AnosLetivosResponseDTO(a.getId(), a.getAnoInicio(), a.getAnoFim()));
+                .map(AnosLetivosResponse::from);
     }
 
-    public Mono<Void> delete(Long id) {
+    public reactor.core.publisher.Mono<Void> delete(Long id) {
         return repository.deleteById(id);
     }
 }
