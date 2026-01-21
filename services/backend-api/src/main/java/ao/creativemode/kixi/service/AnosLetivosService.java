@@ -1,4 +1,4 @@
-package ao.creativemode.service;
+package ao.creativemode.kixi.service;
 
 import ao.creativemode.dto.anosletivos.AnosLetivosRequestDTO;
 import ao.creativemode.dto.anosletivos.AnosLetivosResponseDTO;

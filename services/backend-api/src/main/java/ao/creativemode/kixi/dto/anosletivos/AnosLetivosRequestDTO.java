@@ -1,4 +1,4 @@
-package ao.creativemode.dto.anosletivos;
+package ao.creativemode.kixi.dto.anosletivos;
 
 import jakarta.validation.constraints.NotNull;
 

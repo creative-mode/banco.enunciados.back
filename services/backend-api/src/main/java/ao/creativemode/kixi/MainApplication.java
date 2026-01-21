@@ -1,4 +1,4 @@
-package ao.creativemode;
+package ao.creativemode.kixi;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

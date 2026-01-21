@@ -1,4 +1,4 @@
-package ao.creativemode.model;
+package ao.creativemode.kixi.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

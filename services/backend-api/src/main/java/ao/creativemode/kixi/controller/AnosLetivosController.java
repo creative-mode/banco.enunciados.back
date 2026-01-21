@@ -1,4 +1,4 @@
-package ao.creativemode.controller;
+package ao.creativemode.kixi.controller;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
