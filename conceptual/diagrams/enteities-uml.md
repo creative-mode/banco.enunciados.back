@@ -1,3 +1,5 @@
+```mermaid
+
 %% UML Class Diagram - Kixi Backend (Entities + Controllers com DTOs claros)
 
 classDiagram
@@ -8,7 +10,7 @@ classDiagram
         +int endYear
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class Term {
@@ -17,16 +19,16 @@ classDiagram
         +String name
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class Subject {
         +String code
         +String name
-        +String shortName 
+        +String shortName
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class Course {
@@ -34,7 +36,7 @@ classDiagram
         +String name
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class Class {
@@ -44,7 +46,7 @@ classDiagram
         +Long schoolYearId
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class Account {
@@ -54,10 +56,10 @@ classDiagram
         +String passwordHash
         +Boolean emailVerified
         +Boolean active
-        +Date lastLogin 
+        +Date lastLogin
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class User {
@@ -65,58 +67,58 @@ classDiagram
         +Long accountId
         +String firstName
         +String lastName
-        +String photo 
+        +String photo
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class Role {
         +Long id
         +String name
-        +String description 
+        +String description
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class AccountRole {
         +Long accountId
         +Long roleId
         +Date createdAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class Session {
         +Long id
         +Long accountId
         +String token
-        +String ipAddress 
+        +String ipAddress
         +Date expiresAt
-        +Date lastUsed 
+        +Date lastUsed
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class Statement {
         +Long id
         +String examType
         +int durationMinutes
-        +String variant 
+        +String variant
         +String title
-        +String instructions 
+        +String instructions
         +int totalMaxScore
         +Long schoolYearId
         +Long termId
         +Long subjectId
-        +Long classId 
-        +Long courseId 
+        +Long classId
+        +Long courseId
         +Long createdBy
         +Boolean visible
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class Question {
@@ -126,21 +128,21 @@ classDiagram
         +String text
         +String questionType
         +int maxScore
-        +int orderIndex 
+        +int orderIndex
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class QuestionImage {
         +Long id
         +Long questionId
         +String imageUrl
-        +String caption 
-        +int orderIndex 
+        +String caption
+        +int orderIndex
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class QuestionOption {
@@ -149,39 +151,39 @@ classDiagram
         +String optionLabel
         +String optionText
         +Boolean isCorrect
-        +int orderIndex 
+        +int orderIndex
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class Simulation {
         +Long id
         +Long accountId
         +Long statementId
-        +Long schoolYearId 
+        +Long schoolYearId
         +Date startedAt
-        +Date finishedAt 
-        +int timeSpentSeconds 
-        +float finalScore 
-        +String status 
+        +Date finishedAt
+        +int timeSpentSeconds
+        +float finalScore
+        +String status
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     class SimulationAnswer {
         +Long id
         +Long simulationId
         +Long questionId
-        +Long selectedOptionId 
-        +String answerText 
-        +float scoreObtained 
-        +Boolean isCorrect 
-        +Date answeredAt 
+        +Long selectedOptionId
+        +String answerText
+        +float scoreObtained
+        +Boolean isCorrect
+        +Date answeredAt
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt 
+        +Date deletedAt
     }
 
     %% RELATIONS
@@ -206,3 +208,4 @@ classDiagram
     SimulationAnswer --> Simulation : "simulationId"
     SimulationAnswer --> Question : "questionId"
     SimulationAnswer --> QuestionOption : "selectedOptionId"
+```

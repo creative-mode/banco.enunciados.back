@@ -1,3 +1,6 @@
+
+```mermaid    
+    
     %% CONTROLLERS COM DTOs
     class SchoolYearController {
         +listAllActive() : Mono<ResponseEntity<List<SchoolYearResponse>>>
