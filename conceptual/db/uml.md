@@ -8,7 +8,7 @@ classDiagram
         +int endYear
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class Term {
@@ -17,25 +17,24 @@ classDiagram
         +String name
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class Subject {
         +String code
         +String name
-        +String shortName "optional"
+        +String shortName 
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class Course {
         +String code
         +String name
-        +String description "optional"
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class Class {
@@ -45,7 +44,7 @@ classDiagram
         +Long schoolYearId
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class Account {
@@ -55,10 +54,10 @@ classDiagram
         +String passwordHash
         +Boolean emailVerified
         +Boolean active
-        +Date lastLogin "optional"
+        +Date lastLogin 
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class User {
@@ -66,58 +65,58 @@ classDiagram
         +Long accountId
         +String firstName
         +String lastName
-        +String photo "optional"
+        +String photo 
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class Role {
         +Long id
         +String name
-        +String description "optional"
+        +String description 
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class AccountRole {
         +Long accountId
         +Long roleId
         +Date createdAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class Session {
         +Long id
         +Long accountId
         +String token
-        +String ipAddress "optional"
+        +String ipAddress 
         +Date expiresAt
-        +Date lastUsed "optional"
+        +Date lastUsed 
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class Statement {
         +Long id
         +String examType
         +int durationMinutes
-        +String variant "optional"
+        +String variant 
         +String title
-        +String instructions "optional"
+        +String instructions 
         +int totalMaxScore
         +Long schoolYearId
         +Long termId
         +Long subjectId
-        +Long classId "optional"
-        +Long courseId "optional"
+        +Long classId 
+        +Long courseId 
         +Long createdBy
         +Boolean visible
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class Question {
@@ -127,21 +126,21 @@ classDiagram
         +String text
         +String questionType
         +int maxScore
-        +int orderIndex "optional"
+        +int orderIndex 
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class QuestionImage {
         +Long id
         +Long questionId
         +String imageUrl
-        +String caption "optional"
-        +int orderIndex "optional"
+        +String caption 
+        +int orderIndex 
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class QuestionOption {
@@ -150,39 +149,39 @@ classDiagram
         +String optionLabel
         +String optionText
         +Boolean isCorrect
-        +int orderIndex "optional"
+        +int orderIndex 
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class Simulation {
         +Long id
         +Long accountId
         +Long statementId
-        +Long schoolYearId "optional"
+        +Long schoolYearId 
         +Date startedAt
-        +Date finishedAt "optional"
-        +int timeSpentSeconds "optional"
-        +float finalScore "optional"
-        +String status "optional"
+        +Date finishedAt 
+        +int timeSpentSeconds 
+        +float finalScore 
+        +String status 
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     class SimulationAnswer {
         +Long id
         +Long simulationId
         +Long questionId
-        +Long selectedOptionId "optional"
-        +String answerText "optional"
-        +float scoreObtained "optional"
-        +Boolean isCorrect "optional"
-        +Date answeredAt "optional"
+        +Long selectedOptionId 
+        +String answerText 
+        +float scoreObtained 
+        +Boolean isCorrect 
+        +Date answeredAt 
         +Date createdAt
         +Date updatedAt
-        +Date deletedAt "optional"
+        +Date deletedAt 
     }
 
     %% RELATIONS
