@@ -1,4 +1,4 @@
-````md
+
 # Enuncia Platform
 
 A modular platform for managing, organizing, and reusing exam papers, designed with a service-oriented architecture and support for automated content extraction from images.
@@ -89,3 +89,4 @@ All contributions should follow the defined workflow and adhere to the documente
 * This repository defines the canonical structure and standards of the platform
 * Each service is expected to maintain its own documentation
 * Architectural changes should be accompanied by an ADR
+
