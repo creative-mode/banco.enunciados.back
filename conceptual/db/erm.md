@@ -3,7 +3,7 @@
 **schoolYears** (id, startYear, endYear, createdAt, updatedAt, deletedAt); </br>
 **terms** (id, number, name, createdAt, updatedAt, deletedAt); </br>
 **subjects** (id, code, name, shortName, createdAt, updatedAt, deletedAt); </br>
-**courses** (id, code, name, description, createdAt, updatedAt, deletedAt); </br>
+**courses** (id, code, name, createdAt, updatedAt, deletedAt); </br>
 **classes** (id, code, grade, courseId, schoolYearId, createdAt, updatedAt, deletedAt); </br>
 **accounts** (id, username, email, passwordHash, emailVerified, active, lastLogin, createdAt, updatedAt, deletedAt); </br>
 **users** (id, accountId, firstName, lastName, photo, createdAt, updatedAt, deletedAt); </br>
