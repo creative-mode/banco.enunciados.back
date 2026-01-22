@@ -1,26 +1,34 @@
 package ao.creativemode.kixi.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.LocalDateTime;
 
-@Table("schoolYears")
+@Table("school_years")
 public class SchoolYear {
 
     @Id
     private Long id;
 
-    @Column("startYear")
+    @Column("start_year")
     private Integer startYear;
 
-    @Column("endYear")
+    @Column("end_year")
     private Integer endYear;
 
-    private boolean deleted = false;
+    @CreatedDate
+    @Column("created_at")
+    private LocalDateTime createdAt;
 
-    @Column("deletedAt")
+    @LastModifiedDate
+    @Column("updated_at")
+    private LocalDateTime updatedAt;
+
+    @Column("deleted_at")
     private LocalDateTime deletedAt;
 
     public SchoolYear() {
@@ -35,7 +43,11 @@ public class SchoolYear {
     public Integer getEndYear() { return endYear; }
     public void setEndYear(Integer endYear) { this.endYear = endYear; }
 
-    public void setDeleted(boolean deleted) { this.deleted = deleted; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
     public LocalDateTime getDeletedAt() { return deletedAt; }
     public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
@@ -47,7 +59,7 @@ public class SchoolYear {
     public void restore() {
         this.deletedAt = null;
     }
-    
+
     public boolean isDeleted() {
         return deletedAt != null;
     }

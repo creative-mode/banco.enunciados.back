@@ -8,10 +8,8 @@ import reactor.core.publisher.Mono;
 public interface SchoolYearRepository extends ReactiveCrudRepository<SchoolYear, Long> {
 
     Flux<SchoolYear> findAllByDeletedAtIsNull();
-
     Flux<SchoolYear> findAllByDeletedAtIsNotNull();
-
     Mono<SchoolYear> findByIdAndDeletedAtIsNull(Long id);
-
     Mono<SchoolYear> findByIdAndDeletedAtIsNotNull(Long id);
+    Mono<SchoolYear> findByStartYearAndEndYearAndIdNot(Integer startYear, Integer endYear, Long id);
 }
