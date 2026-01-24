@@ -1,93 +1,101 @@
-# Guia de Implementação: Camada de Chatbot e AI (RAG)  
-**Kixi Platform**  
-**Versão:** 1.2  
-**Data:** Janeiro 2026  
-**Status:** Proposto para Revisão e Aceitação via ADR  
+# Implementation Guide: Chatbot and AI Layer (RAG)
 
-A camada de inteligência artificial e chatbot da Enuncia Platform opera exclusivamente sobre os dados estruturados já persistidos na base relacional, nunca sobre outputs crus do OCR nem sobre informações não validadas. O seu propósito é oferecer suporte inteligente de estudo, explicação de conteúdos, geração de exercícios semelhantes e recomendações complementares, sempre mantendo a base de dados como fonte única de verdade.
+**Status:** Proposed for Review and Acceptance via ADR
 
-A camada é implementada como microserviço independente (ai-service), em Python com FastAPI e LangChain, garantindo desacoplamento total do pipeline de ingestão (OCR + backend) e permitindo evolução independente.
+The AI and chatbot layer of the Enuncia Platform operates exclusively on structured data already persisted in the relational database, never on raw OCR outputs or unvalidated information. Its purpose is to provide intelligent study support, content explanations, generation of similar exercises, and complementary recommendations, always keeping the database as the single source of truth.
 
-### Princípios Fundamentais
-A camada AI é read-only em relação aos dados do domínio. Não persiste, não modifica e não cria entidades. Utiliza Retrieval-Augmented Generation (RAG) para recuperar contexto relevante da base vetorial e enriquecer as respostas do modelo de linguagem.  
+The layer is implemented as an independent microservice (`ai-service`) in Python using FastAPI and LangChain, ensuring full decoupling from the ingestion pipeline (OCR + backend) and allowing independent evolution.
 
-Todo o processamento respeita as regras de autorização (RBAC) aplicadas no backend principal. O chatbot suporta referências explícitas a enunciados na forma `@enunciado.[disciplina].[anoletivo].[trimestre].[tipodeprova]`, carrega o contexto completo do enunciado quando referenciado e mantém-no ativo durante a conversa enquanto o utilizador mencionar questões ou partes dele.
+### Core Principles
 
-### Decisão Tecnológica
-O microserviço ai-service é construído em Python 3.11+ com FastAPI para a API reativa e LangChain para orquestração de chains e retrieval.  
+The AI layer is read-only with respect to domain data. It does not persist, modify, or create entities. It uses Retrieval-Augmented Generation (RAG) to fetch relevant context from the vector database and enrich language model responses.
 
-O modelo de embedding escolhido é multilíngue e leve (paraphrase-multilingual-mpnet-base-v2 ou intfloat/multilingual-e5-large). A base vetorial inicial é PgVector (extensão PostgreSQL na base principal), com possibilidade de migração para Pinecone ou Milvus em escala maior.  
+All processing respects authorization rules (RBAC) applied in the main backend. The chatbot supports explicit references to statements in the form `@statement.[subject].[schoolYear].[term].[examType]`, loads the full statement context when referenced, and keeps it active during the conversation while the user refers to questions or parts of it.
 
-O LLM é configurável via variáveis de ambiente (Grok-2 via xAI API como recomendação inicial, com suporte nativo a Gemini, GPT-4o-mini ou modelos locais via Ollama/vLLM). A decisão final sobre o provedor principal será formalizada em ADR complementar.
+### Technology Decision
 
-### Fluxo de Indexação
-Após a persistência ou atualização de um Statement (exame/enunciado), o backend publica um evento assíncrono (Kafka topic `enuncia.events.statement` ou Spring ApplicationEvent).  
+The `ai-service` microservice is built on Python 3.11+ with FastAPI for reactive API and LangChain for orchestration of chains and retrieval.
 
-O ai-service consome o evento, recupera o Statement completo incluindo Questions e QuestionOptions (via API segura do backend ou leitura direta com row-level security).  
+The chosen embedding model is multilingual and lightweight (e.g., `paraphrase-multilingual-mpnet-base-v2` or `intfloat/multilingual-e5-large`). The initial vector database is PgVector (PostgreSQL extension in the main database), with the possibility to migrate to Pinecone or Milvus at larger scale.
 
-Cada questão é transformada num documento coeso que inclui: enunciado, tipo de questão, pontuação máxima, opções (se aplicável) e metadados do enunciado (disciplina, ano letivo, trimestre, tipo de prova).  
+The LLM is configurable via environment variables (Grok-2 via xAI API recommended initially, with native support for Gemini, GPT-4o-mini, or local models via Ollama/vLLM). The final decision on the main provider will be formalized in a complementary ADR.
 
-O documento é embeddado e indexado na base vetorial com metadados filtráveis (statement_id, disciplina, ano letivo, etc.). A indexação é eventual consistente e idempotente.
+### Indexing Flow
 
-### Fluxo de Consulta e Funcionalidades Principais
-O utilizador envia a mensagem via frontend → backend-api (`POST /ai/chat`). O backend valida autenticação JWT e autorização RBAC antes de encaminhar a query ao ai-service.  
+After a Statement (exam/statement) is persisted or updated, the backend publishes an asynchronous event (Kafka topic `enuncia.events.statement` or Spring ApplicationEvent).
 
-O ai-service processa a query da seguinte forma:
+The `ai-service` consumes the event, retrieves the full Statement including `Questions` and `QuestionOptions` (via secure backend API or direct read with row-level security).
 
-1. Parser identifica referências no formato `@enunciado.[disciplina].[anoletivo].[trimestre].[tipodeprova]` e aplica filtro obrigatório no retrieval para o enunciado correspondente.  
-2. Se a query mencionar uma questão específica (ex: “explica a questão 3”), o contexto completo do enunciado é carregado e mantido ativo para toda a conversa subsequente sobre esse enunciado.  
-3. Retrieval semântico recupera top-k documentos relevantes (k configurável, threshold mínimo ~0.75).  
-4. Construção do prompt inclui: contexto recuperado, instruções do sistema, histórico recente da conversa e eventuais filtros do utilizador.  
-5. Chamada ao LLM (streaming quando suportado).  
+Each question is transformed into a cohesive document including: statement, question type, max score, options (if applicable), and statement metadata (subject, schoolYear, term, examType).
 
-Funcionalidades específicas implementadas:
+The document is embedded and indexed in the vector database with filterable metadata (`statement_id`, `subjectId`, `schoolYearId`, etc.). Indexing is eventually consistent and idempotent.
 
-- Explicação detalhada de questões, com passos claros e raciocínio lógico.  
-- Geração de exercícios novos no mesmo calibre, tema e dificuldade do enunciado referenciado (chain dedicada com prompt específico).  
-- Geração automática de chaves/respostas corretas quando as opções não tiverem `isCorrect` definido na base (prompt explícito para evitar hallucinação).  
-- Adaptação ao estilo de correção de um professor específico, quando indicado (ex: “responda como o Prof. João gosta: formal e com encorajamento”). Armazenamento de preferências por utilizador/professor via configuração.  
-- Recomendação dinâmica de materiais complementares (livros didáticos portugueses/angolanos e vídeos YouTube), obtidos via busca externa integrada (LangChain tools para web search e YouTube). As recomendações incluem título, autor/editora e link direto.
+### Query Flow and Main Features
 
-### Estrutura de Documento na Base Vetorial
-Cada entrada representa uma questão e inclui:
+The user sends a message via frontend → backend API (`POST /ai/chat`). The backend validates JWT authentication and RBAC authorization before forwarding the query to the `ai-service`.
 
-- id: UUID da questão  
-- statement_id: referência ao enunciado  
-- statement_reference: string no formato `@enunciado...`  
-- content: texto completo enriquecido com metadados  
-- metadata: filtros (school_year, subject, question_type, etc.)  
-- embedding: vetor gerado
+The `ai-service` processes the query as follows:
 
-### Endpoints Principais
-- POST /chat/query  
-  Corpo: { "query": string, "userId": uuid, "contextFilters": object opcional }  
-  Resposta: streaming JSON ou objeto com answer, sources, generatedExercises, complementaryMaterials (array com título + link)
+1. Parser identifies references in the format `@statement.[subject].[schoolYear].[term].[examType]` and applies a mandatory retrieval filter for the corresponding statement.
+2. If the query mentions a specific question (e.g., “explain question 3”), the full statement context is loaded and kept active for the entire subsequent conversation about that statement.
+3. Semantic retrieval fetches top-k relevant documents (k configurable, minimum threshold ~0.75).
+4. Prompt construction includes: retrieved context, system instructions, recent conversation history, and any user-specified filters.
+5. LLM call (streaming when supported).
 
-- POST /admin/reindex (protegido)  
-  Força reindexação de um statement específico
+Specific implemented features:
 
-### Comunicação e Segurança
-O backend atua como proxy autenticado. JWT é validado e propagado. Rate limiting por utilizador (Redis) suporta modelo freemium futuro. Eventos assíncronos garantem desacoplamento.
+* Detailed explanation of questions, with clear steps and logical reasoning.
+* Generation of new exercises of the same level, theme, and difficulty as the referenced statement (dedicated chain with specific prompt).
+* Automatic generation of correct answers when options do not have `isCorrect` defined in the database (explicit prompt to avoid hallucination).
+* Adaptation to a specific teacher’s grading style, when indicated (e.g., “respond as Prof. João prefers: formal and encouraging”). Preferences stored per user/teacher via configuration.
+* Dynamic recommendation of complementary materials (Portuguese/Angolan textbooks and YouTube videos), retrieved via integrated external search (LangChain tools for web search and YouTube). Recommendations include title, author/publisher, and direct link.
 
-### Escalabilidade e Observabilidade
-Escala horizontal via réplicas K8s. Cache Redis para embeddings e respostas frequentes. Métricas Prometheus monitoram latência, recall@K, tempo de geração e consumo de tokens. Tracing distribuído (Jaeger) correlaciona fluxos completos.
+### Vector Database Document Structure
 
-### Configuração Inicial Recomendada
-- Embedding: paraphrase-multilingual-mpnet-base-v2  
-- Vector DB: PgVector  
-- LLM: Grok-2 (xAI API) como default configurável  
-- Prompt base do sistema:  
-  “Você é um tutor especialista da Enuncia Platform. Responda sempre em português de Portugal, de forma clara, educativa e estruturada. Use apenas o contexto fornecido. Cite as questões relevantes. Gere exercícios semelhantes quando pedido. Recomende materiais complementares úteis (livros e vídeos) com links. Se não houver chave na base, gere respostas corretas com rigor. Adapte ao estilo do professor quando indicado.”
+Each entry represents a question and includes:
 
-### Próximos Passos
-- Prototipar fluxo completo: persistir enunciado → indexar → referenciar via @ → explicar + gerar exercício + recomendar material  
-- Validar precisão da geração de chaves e exercícios em conjunto com professores  
-- Realizar testes A/B para k, threshold e modelo embedding  
-- Formalizar escolha do LLM via ADR  
-- Definir SLOs: 95% das respostas em menos de 4 segundos, recall@5 superior a 0.85
+* `id`: question ID
+* `statement_id`: reference to the statement
+* `statement_reference`: string in the format `@statement...`
+* `content`: full text enriched with metadata
+* `metadata`: filters (`schoolYearId`, `subjectId`, `questionType`, etc.)
+* `embedding`: generated vector
 
-Aprovação pendente:  
-[ ] Tech Lead  
-[ ] Arquitetura  
+### Main Endpoints
 
-Última atualização: Janeiro 2026
+* **POST /chat/query**
+  Body: `{ "query": string, "userId": id, "contextFilters": optional object }`
+  Response: streaming JSON or object with `answer`, `sources`, `generatedExercises`, `complementaryMaterials` (array with title + link)
+
+* **POST /admin/reindex** (protected)
+  Forces reindexing of a specific statement
+
+### Communication and Security
+
+The backend acts as an authenticated proxy. JWT is validated and propagated. User-level rate limiting (Redis) supports a future freemium model. Asynchronous events ensure decoupling.
+
+### Scalability and Observability
+
+Horizontal scaling via K8s replicas. Redis cache for embeddings and frequent responses. Prometheus metrics monitor latency, recall@K, generation time, and token consumption. Distributed tracing (Jaeger) correlates full flows.
+
+### Recommended Initial Configuration
+
+* Embedding: `paraphrase-multilingual-mpnet-base-v2`
+* Vector DB: PgVector
+* LLM: Grok-2 (xAI API) as default configurable
+* Base system prompt:
+  “You are an expert tutor for the Enuncia Platform. Always respond in European Portuguese clearly, educationally, and structured. Use only the provided context. Cite relevant questions. Generate similar exercises when requested. Recommend useful complementary materials (books and videos) with links. If no correct answer exists in the database, generate correct answers rigorously. Adapt to the teacher’s style when indicated.”
+
+### Next Steps
+
+* Prototype full flow: persist statement → index → reference via @ → explain + generate exercise + recommend material
+* Validate accuracy of generated keys and exercises with teachers
+* Conduct A/B tests for k, threshold, and embedding model
+* Formalize LLM choice via ADR
+* Define SLOs: 95% of answers under 4 seconds, recall@5 above 0.85
+
+Pending Approval:
+[ ] Tech Lead
+[ ] Architecture
+
+Last update: January 2026
