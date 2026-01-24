@@ -1,5 +1,5 @@
 # Guia de Implementação: Camada de Chatbot e AI (RAG)  
-**Enuncia Platform**  
+**Kixi Platform**  
 **Versão:** 1.2  
 **Data:** Janeiro 2026  
 **Status:** Proposto para Revisão e Aceitação via ADR  
