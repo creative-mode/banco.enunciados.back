@@ -1,161 +1,193 @@
-
-# Guia de Implementação de CRUDs Reativos no Projeto
-
-Este guia detalha o padrão de implementação de CRUDs no backend localizado em `services/backend-api`, usando o exemplo do CRUD de "schoolyears" como referência. Para implementar qualquer novo CRUD, substitua "[nome da entidade]" pelo nome da sua entidade e consulte os arquivos do CRUD de schoolyears para exemplos práticos.
+Here’s a full English version of your CRUD implementation guide, adapted for the entities you listed:
 
 ---
 
-## Estrutura de Arquivos e Propósito
+# Reactive CRUD Implementation Guide for the Project
+
+This guide details the standard pattern for implementing CRUD operations in the backend located at `services/backend-api`, using the `schoolYears` CRUD as a reference. To implement any new CRUD, replace `[EntityName]` with the name of your entity and refer to the `schoolYears` CRUD files for practical examples.
+
+---
+
+## File Structure and Purpose
 
 ### 1. Controller
-- **Caminho:** `src/main/java/ao/creativemode/kixi/controller/[NomeDaEntidade]Controller.java`
-- **Propósito:** Define as rotas HTTP e expõe a API REST para a entidade. Recebe requisições, valida dados e delega ao service.
-- **Integração:** Depende do service correspondente. Utiliza DTOs para entrada e saída.
-- **Boas práticas:**
-  - Anotado com `@RestController` e `@RequestMapping`.
-  - Métodos reativos (`Mono`, `Flux`).
-  - Validação com `@Valid`.
-  - Retorno padronizado com `ResponseEntity`.
-  - Consulte o arquivo do controller de schoolyears para exemplos de endpoints e convenções.
+
+* **Path:** `src/main/java/ao/creativemode/kixi/controller/[EntityName]Controller.java`
+* **Purpose:** Defines HTTP routes and exposes the REST API for the entity. Receives requests, validates data, and delegates to the service layer.
+* **Integration:** Depends on the corresponding service. Uses DTOs for input and output.
+* **Best Practices:**
+
+  * Annotate with `@RestController` and `@RequestMapping`.
+  * Use reactive types (`Mono`, `Flux`).
+  * Validate inputs with `@Valid`.
+  * Return standardized responses using `ResponseEntity`.
+  * Refer to `schoolYearsController` for endpoint examples and naming conventions.
 
 ### 2. Service
-- **Caminho:** `src/main/java/ao/creativemode/kixi/service/[NomeDaEntidade]Service.java`
-- **Propósito:** Implementa a lógica de negócio do CRUD. Realiza validações adicionais e orquestra operações no repositório.
-- **Integração:** Depende do repository. Utiliza DTOs e entidades.
-- **Boas práticas:**
-  - Anotado com `@Service`.
-  - Métodos reativos (`Mono`, `Flux`).
-  - Conversão entre entidade e DTO centralizada.
-  - Lida com soft delete, restore e hard delete.
-  - Consulte o arquivo do service de schoolyears para exemplos de métodos e lógica de negócio.
+
+* **Path:** `src/main/java/ao/creativemode/kixi/service/[EntityName]Service.java`
+* **Purpose:** Implements business logic for the CRUD operations. Performs additional validations and orchestrates repository operations.
+* **Integration:** Depends on the repository. Uses DTOs and entities.
+* **Best Practices:**
+
+  * Annotate with `@Service`.
+  * Methods should be reactive (`Mono`, `Flux`).
+  * Centralize entity-to-DTO conversion.
+  * Handle soft delete, restore, and hard delete.
+  * See `schoolYearsService` for method examples and business logic.
 
 ### 3. Repository
-- **Caminho:** `src/main/java/ao/creativemode/kixi/repository/[NomeDaEntidade]Repository.java`
-- **Propósito:** Interface para acesso ao banco de dados, usando Spring Data R2DBC.
-- **Integração:** Utilizado pelo service. Opera sobre entidades.
-- **Boas práticas:**
-  - Extende `ReactiveCrudRepository`.
-  - Métodos customizados para soft delete (`findAllByDeletedFalse`, etc).
-  - Consulte o arquivo do repository de schoolyears para exemplos de métodos customizados.
 
-### 4. Model (Entidade)
-- **Caminho:** `src/main/java/ao/creativemode/kixi/model/[NomeDaEntidade].java`
-- **Propósito:** Representa a tabela no banco de dados.
-- **Integração:** Usada pelo repository e service.
-- **Boas práticas:**
-  - Anotações do Spring Data (`@Table`, `@Id`, `@Column`).
-  - Métodos utilitários para soft delete e restore.
-  - Consulte o arquivo da entidade schoolyears para exemplos de estrutura e métodos.
+* **Path:** `src/main/java/ao/creativemode/kixi/repository/[EntityName]Repository.java`
+* **Purpose:** Interface for database access using Spring Data R2DBC.
+* **Integration:** Used by the service layer. Operates on entities.
+* **Best Practices:**
+
+  * Extend `ReactiveCrudRepository`.
+  * Define custom methods for soft delete (`findAllByDeletedFalse`, etc.).
+  * Check `schoolYearsRepository` for custom query examples.
+
+### 4. Model (Entity)
+
+* **Path:** `src/main/java/ao/creativemode/kixi/model/[EntityName].java`
+* **Purpose:** Represents the database table.
+* **Integration:** Used by repository and service layers.
+* **Best Practices:**
+
+  * Annotate with Spring Data annotations (`@Table`, `@Id`, `@Column`).
+  * Include utility methods for soft delete and restore.
+  * See `schoolYears` entity for structure examples.
 
 ### 5. DTOs
-- **Caminho:** `src/main/java/ao/creativemode/kixi/dto/[nomeDaEntidade]/`
-- **Propósito:** Transportam dados entre camadas e expõem contratos da API.
-- **Integração:** Usados no controller e service.
-- **Boas práticas:**
-  - Utilização de `record` para imutabilidade.
-  - Validação com anotações (`@NotNull`, `@Positive`).
-  - Consulte os DTOs de schoolyears para exemplos de estrutura e validação.
 
-### 6. Migration (Banco de Dados)
-- **Caminho:** `src/main/resources/db/migration/Vx__create_[nome_da_tabela]_table.sql`
-- **Propósito:** Cria a tabela no banco de dados.
-- **Integração:** Executada automaticamente na inicialização.
-- **Boas práticas:**
-  - Constrains de unicidade e integridade.
-  - Consulte a migration de schoolyears para exemplos de constraints e estrutura.
+* **Path:** `src/main/java/ao/creativemode/kixi/dto/[entityName]/`
+* **Purpose:** Transfer data between layers and define API contracts.
+* **Integration:** Used in controller and service layers.
+* **Best Practices:**
 
-### 7. Configurações
-- **Caminho:** `src/main/resources/application.properties`
-- **Propósito:** Configura conexão com o banco e propriedades do Spring.
-- **Integração:** Usado pelo framework.
-- **Boas práticas:**
-  - Não versionar senhas reais. Use arquivos de exemplo.
-  - Consulte o arquivo de configuração do projeto para exemplos de propriedades.
+  * Use `record` for immutability.
+  * Validate fields with annotations (`@NotNull`, `@Positive`).
+  * See `schoolYears` DTOs for examples of structure and validation.
 
-### 8. Exceptions e Handler Global
-- **Caminho:** `src/main/java/ao/creativemode/kixi/common/exception/`
-- **Propósito:** Centraliza tratamento de erros e padroniza respostas.
-- **Integração:** Usado por todas as camadas.
-- **Boas práticas:**
-  - Uso de Problem Details (RFC 9457).
-  - Handlers para validação e erros genéricos.
-  - Consulte os arquivos de exceção e handler global para exemplos de tratamento de erros.
+### 6. Database Migration
+
+* **Path:** `src/main/resources/db/migration/Vx__create_[table_name]_table.sql`
+* **Purpose:** Creates the database table.
+* **Integration:** Automatically executed on application startup.
+* **Best Practices:**
+
+  * Include constraints for uniqueness and integrity.
+  * Refer to the `schoolYears` migration for table structure and constraints.
+
+### 7. Configurations
+
+* **Path:** `src/main/resources/application.properties`
+* **Purpose:** Configures database connections and Spring properties.
+* **Integration:** Used by the framework.
+* **Best Practices:**
+
+  * Do not commit real passwords. Use example configuration files.
+  * See project config for property examples.
+
+### 8. Exceptions and Global Handler
+
+* **Path:** `src/main/java/ao/creativemode/kixi/common/exception/`
+* **Purpose:** Centralizes error handling and standardizes API responses.
+* **Integration:** Used across all layers.
+* **Best Practices:**
+
+  * Use Problem Details (RFC 9457) format.
+  * Provide handlers for validation and generic errors.
+  * Check existing exception handlers for usage examples.
 
 ---
 
-
-## Fluxo das Operações CRUD
+## CRUD Operation Flow
 
 ### Create
-- **Controller:** Recebe DTO de criação, valida e chama `service.create()`.
-- **Service:** Converte DTO em entidade, salva via repository, retorna DTO de resposta.
-- **Repository:** Persiste entidade.
 
-### Read (Listar e Buscar por ID)
-- **Controller:** Expõe endpoints para listar ativos, listar deletados, buscar por ID.
-- **Service:** Busca entidades via repository, converte para DTO de resposta.
-- **Repository:** Métodos customizados para ativos/deletados.
+* **Controller:** Receives creation DTO, validates, calls `service.create()`.
+* **Service:** Converts DTO to entity, saves via repository, returns response DTO.
+* **Repository:** Persists the entity.
+
+### Read (List and Get by ID)
+
+* **Controller:** Provides endpoints to list active items, deleted items, and fetch by ID.
+* **Service:** Fetches entities via repository, converts to response DTOs.
+* **Repository:** Provides custom queries for active/deleted items.
 
 ### Update
-- **Controller:** Recebe DTO de atualização, valida e chama `service.update()`.
-- **Service:** Busca entidade, atualiza campos, salva e retorna DTO de resposta.
 
-### Delete (Soft Delete)
-- **Controller:** Chama `service.softDelete()`.
-- **Service:** Marca entidade como deletada, salva.
-- **Repository:** Atualiza registro.
+* **Controller:** Receives update DTO, validates, calls `service.update()`.
+* **Service:** Fetches entity, updates fields, saves, and returns response DTO.
+
+### Soft Delete
+
+* **Controller:** Calls `service.softDelete()`.
+* **Service:** Marks entity as deleted, saves.
+* **Repository:** Updates record.
 
 ### Restore
-- **Controller:** Chama `service.restore()`.
-- **Service:** Restaura entidade deletada, salva.
+
+* **Controller:** Calls `service.restore()`.
+* **Service:** Restores deleted entity, saves.
 
 ### Hard Delete
-- **Controller:** Chama `service.hardDelete()`.
-- **Service:** Remove entidade do banco.
 
-Consulte o fluxo completo do CRUD de schoolyears para exemplos detalhados de cada operação.
+* **Controller:** Calls `service.hardDelete()`.
+* **Service:** Removes entity from database.
 
----
-
-## Boas Práticas Gerais
-- Separe DTOs, entidades, services, controllers e repositórios em pacotes distintos.
-- Use métodos reativos (`Mono`, `Flux`) em todas as camadas.
-- Nunca use `.block()` ou `.subscribe()` fora de testes.
-- Valide dados com anotações e `@Valid`.
-- Centralize conversão entre entidade e DTO.
-- Implemente soft delete sempre que necessário.
-- Centralize tratamento de erros com handler global.
-- Documente endpoints e regras de negócio.
+Refer to `schoolYears` CRUD for detailed flow examples.
 
 ---
 
+## General Best Practices
 
-## Como Implementar um Novo CRUD
-1. Crie a entidade em `model/` usando `[nome da entidade]`.
-2. Defina DTOs em `dto/[nome da entidade]/`.
-3. Implemente o repository.
-4. Implemente o service.
-5. Implemente o controller.
-6. Crie migration para a tabela.
-7. Adapte o handler global se necessário.
-8. Siga as boas práticas acima.
-9. Consulte os arquivos do CRUD de schoolyears para exemplos práticos e adaptação.
-
----
-
-## Destaques Importantes
-
-- **Relacionamentos Many-to-Many:**  
-  - Se **não há dados extras** na tabela intermediária, **evite criar uma entidade** para ela; utilize apenas a anotação `@ManyToMany` nas entidades relacionadas.
-  - Se **há dados extras** (colunas adicionais além das FKs), **sempre crie a entidade** da tabela intermediária e trate-a como uma “entidade normal” (com CRUD, DTOs, etc).
-
-- **DTOs:**  
-  Sempre crie DTOs para transportar dados entre camadas e **nunca exponha diretamente suas entidades** nos endpoints.
-
-- **Service Layer:**  
-  É recomendável utilizar uma camada de service para manter o controller limpo e separar a lógica de negócio.
+* Keep DTOs, entities, services, controllers, and repositories in separate packages.
+* Use reactive types (`Mono`, `Flux`) in all layers.
+* Avoid `.block()` or `.subscribe()` outside tests.
+* Validate inputs with annotations and `@Valid`.
+* Centralize entity-to-DTO conversion.
+* Always implement soft delete where applicable.
+* Centralize error handling with a global handler.
+* Document endpoints and business rules.
 
 ---
 
-Este guia é o padrão oficial para CRUDs reativos neste projeto. Adapte conforme necessário, mantendo a arquitetura e as convenções.
-*Centralize conversões entre entidades e DTOs para facilitar manutenção.*
+## Implementing a New CRUD
+
+1. Create the entity in `model/` using `[EntityName]`.
+2. Define DTOs in `dto/[EntityName]/`.
+3. Implement the repository.
+4. Implement the service.
+5. Implement the controller.
+6. Create migration for the table.
+7. Update the global handler if needed.
+8. Follow the best practices above.
+9. Refer to `schoolYears` CRUD for practical examples.
+
+---
+
+## Important Notes
+
+* **Many-to-Many Relationships:**
+
+  * If **no extra data** exists in the join table, **do not create a separate entity**; use `@ManyToMany` annotations in related entities.
+  * If **extra columns exist** (beyond FK references), **always create an entity** for the join table and handle it like a normal entity (with CRUD, DTOs, etc.).
+
+* **DTOs:**
+  Always create DTOs for data transfer between layers and **never expose entities directly** in API endpoints.
+
+* **Service Layer:**
+  Recommended to use a service layer to keep controllers clean and separate business logic.
+
+---
+
+This guide represents the official standard for reactive CRUDs in this project. Adapt as necessary while maintaining architecture and conventions.
+*Centralize entity-to-DTO conversions to simplify maintenance.*
+
+---
+
+**Entities in the Project:**
+
+[ERM](https://github.com/creative-mode/kixi/blob/prod/conceptual/architecture/db/erm.md)

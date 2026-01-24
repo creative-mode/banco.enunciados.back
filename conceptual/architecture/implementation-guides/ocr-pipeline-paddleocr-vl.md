@@ -1,88 +1,98 @@
-# Guia de Implementação Completo  
-**Pipeline OCR com PaddleOCR-VL**  
-**Kixi Platform**  
-**Versão:** 1.1  
-**Data:** Janeiro 2026  
-**Status:** Proposto para Revisão e Aceitação via ADR  
+Aqui está a tradução completa para inglês, mantendo fidelidade técnica e consistência com os nomes das entidades da tua BD:
 
-Este documento consolida a implementação do microserviço OCR como componente isolado e stateless, responsável pela extração estruturada de enunciados de provas a partir de imagens. A estrutura de saída JSON é projetada para espelhar os campos principais das entidades `statements` e `questions` do modelo ERM, sem acoplamento forte: valores textuais livres, confiança granular e ausência de validação de domínio (lookup de IDs, existência de disciplinas etc. ficam exclusivamente no backend).
+---
 
-O serviço **nunca** acessa a base de dados, persiste dados ou aplica regras de negócio. Atua apenas como transformador de imagem → JSON estruturado.
+# Full Implementation Guide
 
-## 0. FLuxo
+**OCR Pipeline with PaddleOCR-VL**
+**Status:** Proposed for Review and Acceptance via ADR
+
+This document consolidates the implementation of the OCR microservice as an isolated, stateless component, responsible for structured extraction of exam statements from images. The JSON output structure is designed to mirror the main fields of the `statements` and `questions` entities from the ERM model, without strong coupling: free-text values, granular confidence scores, and no domain validation (ID lookups, subject existence, etc. are handled exclusively in the backend).
+
+The service **never** accesses the database, persists data, or enforces business rules. It functions solely as an image → structured JSON transformer.
+
+## 0. Flow
 
 ```markdown
-
 UI (Web/Mobile)
 
-   ↓ multipart/form-data (imagens + contexto)
+   ↓ multipart/form-data (images + context)
 
 Backend API (Spring Boot WebFlux) → POST /api/statements/upload-ocr
 
-   ↓ HTTP POST (WebClient reativo + Resilience4j)
+   ↓ HTTP POST (Reactive WebClient + Resilience4j)
 
 OCR Service (Python FastAPI + PaddleOCR-VL) → POST /ocr/v1/extract
 
-   ↓ JSON estruturado (contrato abaixo)
+   ↓ structured JSON (contract below)
 
 Backend API (StatementService)
 
-   ↓ mapeamento + lookup/validação de domínio
+   ↓ mapping + domain lookup/validation
 
-   ↓ persistência reativa (R2DBC)
+   ↓ reactive persistence (R2DBC)
 
-   ↓ evento assíncrono: StatementCreatedEvent → Kafka topic "statements.created"
+   ↓ asynchronous event: StatementCreatedEvent → Kafka topic "statements.created"
 
-AI Service (consome evento e indexa para RAG)
+AI Service (consumes event and indexes for RAG)
 ```
 
-## 1. Objetivos e Princípios Arquiteturais
-- **Separação estrita**: OCR extrai; backend mapeia/valida/persiste.  
-- **Contrato claro**: JSON hierárquico definido via schema em `libs/contracts/ocr-extract-response.json`.  
-- **Escalabilidade**: Suporte a alta concorrência via assincronia + multiprocessing/GPU.  
-- **Observabilidade**: Métricas Prometheus, tracing Jaeger, logs estruturados.  
-- **Idempotência**: Hash da imagem permite cache de resultados.  
+## 1. Goals and Architectural Principles
 
-## 2. Arquitetura Interna do Microserviço OCR
-O serviço é construído com **FastAPI** (Python 3.11+), **PaddleOCR-VL** (modelos PP-OCRv4 + layout analysis) e **OpenCV** para pré-processamento.
+* **Strict separation**: OCR extracts; backend maps/validates/persists.
+* **Clear contract**: Hierarchical JSON defined via schema in `libs/contracts/ocr-extract-response.json`.
+* **Scalability**: Supports high concurrency via async + multiprocessing/GPU.
+* **Observability**: Prometheus metrics, Jaeger tracing, structured logs.
+* **Idempotency**: Image hash enables result caching.
 
-### Camadas
-- **API Layer** (`app/api/endpoints.py`):  
-  Endpoint único: `POST /ocr/extract` (multipart/form-data).  
-  Validação: Pydantic + middleware JWT.  
-  Delega para camada de orquestração.
+## 2. OCR Microservice Internal Architecture
 
-- **Orquestração** (`app/ocr/engine.py`):  
-  Pré-carrega modelos no startup.  
-  Processa imagens em paralelo (asyncio + multiprocessing).  
-  Pré-processa: deskew, binarização, resize.  
-  Executa PaddleOCR-VL (detecção + reconhecimento + layout parsing).  
-  Pós-processa: filtra confiança, infere tipo de questão, reconstrói hierarquia.
+The service is built with **FastAPI** (Python 3.11+), **PaddleOCR-VL** (PP-OCRv4 models + layout analysis), and **OpenCV** for pre-processing.
 
-- **Parsing** (`app/ocr/postprocessing.py`):  
-  Extrai metadados via regex + layout (cabeçalho/rodapé).  
-  Segmenta questões por numeração e blocos visuais.  
-  Infere `questionType` (multiple_choice, short_answer, development, true_false).  
-  Extrai opções quando tabela ou lista é detetada.
+### Layers
 
-## 3. Contrato HTTP
-**Endpoint:** `POST /ocr/extract`  
-**Cabeçalhos:**  
-- `Authorization: Bearer <JWT>`  
+* **API Layer** (`app/api/endpoints.py`):
+  Single endpoint: `POST /ocr/extract` (multipart/form-data).
+  Validation: Pydantic + JWT middleware.
+  Delegates to orchestration layer.
 
-**Corpo (multipart/form-data):**  
-- `images[]`: ficheiros de imagem (JPEG/PNG, múltiplos permitidos).  
-- `context` (opcional): JSON como string (ex: `{"languageHint": "pt"}`).
+* **Orchestration** (`app/ocr/engine.py`):
+  Pre-loads models at startup.
+  Processes images in parallel (asyncio + multiprocessing).
+  Pre-processing: deskew, binarization, resize.
+  Runs PaddleOCR-VL (detection + recognition + layout parsing).
+  Post-processing: filters by confidence, infers question type, reconstructs hierarchy.
 
-**Respostas:**  
-- 200 OK: JSON estruturado (abaixo).  
-- 400/422: Erro de validação.  
-- 500: Falha interna (com retry no backend via Resilience4j).
+* **Parsing** (`app/ocr/postprocessing.py`):
+  Extracts metadata via regex + layout (header/footer).
+  Segments questions by numbering and visual blocks.
+  Infers `questionType` (multiple_choice, short_answer, development, true_false).
+  Extracts options when table or list is detected.
 
-## 4. Estrutura da Resposta JSON
-Definida em `libs/contracts/ocr-extract-response.json` (JSON Schema).
+## 3. HTTP Contract
 
-### Estrutura Geral
+**Endpoint:** `POST /ocr/extract`
+**Headers:**
+
+* `Authorization: Bearer <JWT>`
+
+**Body (multipart/form-data):**
+
+* `images[]`: image files (JPEG/PNG, multiple allowed)
+* `context` (optional): JSON string (e.g., `{"languageHint": "pt"}`)
+
+**Responses:**
+
+* 200 OK: structured JSON (see below)
+* 400/422: validation error
+* 500: internal failure (with retry in backend via Resilience4j)
+
+## 4. JSON Response Structure
+
+Defined in `libs/contracts/ocr-extract-response.json` (JSON Schema).
+
+### General Structure
+
 ```json
 {
   "status": "success" | "partial" | "error",
@@ -94,14 +104,15 @@ Definida em `libs/contracts/ocr-extract-response.json` (JSON Schema).
     "mainLanguage": "pt" | "en" | ...,
     "hasTables": boolean
   },
-  "metadata": { ... campos espelhando statements ... },
-  "questions": [ ... array espelhando questions + questionOptions ... ],
-  "unmappedContent": [ ... texto residual ... ],
-  "warnings": [ ... alertas ... ]
+  "metadata": { ... fields mirroring statements ... },
+  "questions": [ ... array mirroring questions + questionOptions ... ],
+  "unmappedContent": [ ... residual text ... ],
+  "warnings": [ ... alerts ... ]
 }
 ```
 
-### Exemplo Completo (Prova de Matemática – 3 páginas)
+### Full Example (Mathematics Exam – 3 pages)
+
 ```json
 {
   "status": "success",
@@ -114,63 +125,24 @@ Definida em `libs/contracts/ocr-extract-response.json` (JSON Schema).
     "hasTables": true
   },
   "metadata": {
-    "schoolYear": {
-      "value": "2024/2025",
-      "confidence": 0.97
-    },
-    "term": {
-      "value": "2º Trimestre",
-      "confidence": 0.94
-    },
-    "subject": {
-      "value": "Matemática A",
-      "confidence": 0.93
-    },
-    "course": {
-      "value": null,
-      "confidence": 0.0
-    },
-    "class": {
-      "value": "12º Ano - Turma A",
-      "confidence": 0.89
-    },
-    "examType": {
-      "value": "Prova de Avaliação Periódica",
-      "confidence": 0.91
-    },
-    "durationMinutes": {
-      "value": 120,
-      "confidence": 0.88
-    },
-    "variant": {
-      "value": "A",
-      "confidence": 0.96
-    },
-    "title": {
-      "value": "Avaliação Sumativa - 2º Trimestre",
-      "confidence": 0.90
-    },
-    "instructions": {
-      "value": "Leia atentamente. Responda no espaço destinado.",
-      "confidence": 0.85
-    }
+    "schoolYear": { "value": "2024/2025", "confidence": 0.97 },
+    "term": { "value": "2º Term", "confidence": 0.94 },
+    "subject": { "value": "Mathematics A", "confidence": 0.93 },
+    "course": { "value": null, "confidence": 0.0 },
+    "class": { "value": "12th Grade - Class A", "confidence": 0.89 },
+    "examType": { "value": "Periodic Assessment", "confidence": 0.91 },
+    "durationMinutes": { "value": 120, "confidence": 0.88 },
+    "variant": { "value": "A", "confidence": 0.96 },
+    "title": { "value": "Summative Assessment - 2nd Term", "confidence": 0.90 },
+    "instructions": { "value": "Read carefully. Answer in the designated space.", "confidence": 0.85 }
   },
   "questions": [
     {
       "number": 1,
       "confidence": 0.935,
-      "text": {
-        "value": "Resolva a equação: 3x - 7 = 14",
-        "confidence": 0.96
-      },
-      "questionType": {
-        "value": "short_answer",
-        "confidence": 0.89
-      },
-      "maxScore": {
-        "value": 5,
-        "confidence": 0.92
-      },
+      "text": { "value": "Solve the equation: 3x - 7 = 14", "confidence": 0.96 },
+      "questionType": { "value": "short_answer", "confidence": 0.89 },
+      "maxScore": { "value": 5, "confidence": 0.92 },
       "options": [],
       "pageIndex": 0,
       "startY": 280,
@@ -179,39 +151,14 @@ Definida em `libs/contracts/ocr-extract-response.json` (JSON Schema).
     {
       "number": 2,
       "confidence": 0.918,
-      "text": {
-        "value": "Qual das seguintes opções representa a raiz quadrada de 64?",
-        "confidence": 0.95
-      },
-      "questionType": {
-        "value": "multiple_choice",
-        "confidence": 0.94
-      },
-      "maxScore": {
-        "value": 4,
-        "confidence": 0.90
-      },
+      "text": { "value": "Which of the following options represents the square root of 64?", "confidence": 0.95 },
+      "questionType": { "value": "multiple_choice", "confidence": 0.94 },
+      "maxScore": { "value": 4, "confidence": 0.90 },
       "options": [
-        {
-          "optionLabel": "A",
-          "optionText": "6",
-          "confidence": 0.97
-        },
-        {
-          "optionLabel": "B",
-          "optionText": "8",
-          "confidence": 0.96
-        },
-        {
-          "optionLabel": "C",
-          "optionText": "7",
-          "confidence": 0.94
-        },
-        {
-          "optionLabel": "D",
-          "optionText": "9",
-          "confidence": 0.95
-        }
+        { "optionLabel": "A", "optionText": "6", "confidence": 0.97 },
+        { "optionLabel": "B", "optionText": "8", "confidence": 0.96 },
+        { "optionLabel": "C", "optionText": "7", "confidence": 0.94 },
+        { "optionLabel": "D", "optionText": "9", "confidence": 0.95 }
       ],
       "pageIndex": 1,
       "startY": 120,
@@ -220,18 +167,9 @@ Definida em `libs/contracts/ocr-extract-response.json` (JSON Schema).
     {
       "number": 3,
       "confidence": 0.862,
-      "text": {
-        "value": "Justifique por que o triângulo ABC é congruente ao triângulo DEF.",
-        "confidence": 0.89
-      },
-      "questionType": {
-        "value": "development",
-        "confidence": 0.91
-      },
-      "maxScore": {
-        "value": 10,
-        "confidence": 0.87
-      },
+      "text": { "value": "Justify why triangle ABC is congruent to triangle DEF.", "confidence": 0.89 },
+      "questionType": { "value": "development", "confidence": 0.91 },
+      "maxScore": { "value": 10, "confidence": 0.87 },
       "options": [],
       "pageIndex": 2,
       "startY": 90,
@@ -239,34 +177,29 @@ Definida em `libs/contracts/ocr-extract-response.json` (JSON Schema).
     }
   ],
   "unmappedContent": [
-    {
-      "pageIndex": 2,
-      "text": "Gabarito preliminar (uso interno)",
-      "confidence": 0.94
-    }
+    { "pageIndex": 2, "text": "Preliminary answer key (internal use)", "confidence": 0.94 }
   ],
   "warnings": [
-    {
-      "code": "LOW_CONFIDENCE",
-      "field": "class",
-      "confidence": 0.76
-    }
+    { "code": "LOW_CONFIDENCE", "field": "class", "confidence": 0.76 }
   ]
 }
 ```
 
-## 5. Mapeamento no Backend (Spring Boot WebFlux)
-No serviço `StatementService`:
+## 5. Backend Mapping (Spring Boot WebFlux)
 
-1. **Recebe JSON** via WebClient (reativo).  
-2. **Valida confiança** (ex: threshold 0.80 por campo).  
-3. **Lookup/criação condicional**:
+In `StatementService`:
+
+1. **Receives JSON** via WebClient (reactive).
+2. **Confidence validation** (e.g., threshold 0.80 per field).
+3. **Conditional lookup/creation**:
+
    ```java
-   // Exemplo simplificado
+   // Simplified example
    SchoolYear sy = schoolYearRepository.findByYears(meta.schoolYear.value)
        .orElseGet(() -> schoolYearService.createFromString(meta.schoolYear.value));
    ```
-4. **Constrói Statement**:
+4. **Builds Statement**:
+
    ```java
    Statement stmt = new Statement();
    stmt.setExamType(meta.examType.value);
@@ -279,7 +212,8 @@ No serviço `StatementService`:
    stmt.setSubject(subjectLookup(meta.subject.value));
    stmt.setClass(classLookup(meta.class.value));
    ```
-5. **Constrói Questions + Options**:
+5. **Builds Questions + Options**:
+
    ```java
    for (var q : ocrResponse.questions) {
        Question question = new Question();
@@ -299,25 +233,27 @@ No serviço `StatementService`:
        stmt.addQuestion(question);
    }
    ```
-6. **Persiste** via repositório reativo.  
-7. **Marca revisão** se confiança baixa (campo `needsReview`).
+6. **Persists** via reactive repository.
+7. **Marks for review** if confidence is low (`needsReview` field).
 
-## 6. Escalabilidade e Operacionalização
-- **Pré-carga modelos** no startup (reduz latência fria).  
-- **GPU** para PaddleOCR-VL (deploy em nós dedicados).  
-- **Fila** (Celery + Redis) para picos.  
-- **Métricas**: latência por página, confiança média, taxa de warnings.  
-- **Circuit Breaker**: Resilience4j no backend.  
-- **Cache**: Redis com chave = hash da imagem.
+## 6. Scalability and Operationalization
 
-## 7. Próximos Passos
-- Implementar JSON Schema validation no backend.  
-- Adicionar suporte a fórmulas LaTeX (via detecção de blocos matemáticos).  
-- Testes end-to-end: upload → OCR → persistência.  
-- ADR complementar: decisão sobre fila vs. processamento síncrono.
+* **Pre-load models** at startup (reduces cold latency).
+* **GPU** for PaddleOCR-VL (deploy on dedicated nodes).
+* **Queue** (Celery + Redis) for peak loads.
+* **Metrics**: page latency, average confidence, warning rate.
+* **Circuit Breaker**: Resilience4j in backend.
+* **Cache**: Redis with key = image hash.
 
-**Aprovação pendente:**  
-[ ] Tech Lead  
-[ ] Arquitetura  
+## 7. Next Steps
 
-Última atualização: Janeiro 2026
+* Implement JSON Schema validation in backend.
+* Add support for LaTeX formulas (via math block detection).
+* End-to-end testing: upload → OCR → persistence.
+* Complementary ADR: decision on queue vs synchronous processing.
+
+**Pending Approval:**
+[ ] Tech Lead
+[ ] Architecture
+
+Last update: January 2026
