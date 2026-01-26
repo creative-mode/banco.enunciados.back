@@ -5,213 +5,245 @@ import ao.creativemode.kixi.dto.roles.RoleRequest;
 import ao.creativemode.kixi.dto.roles.RoleResponse;
 import ao.creativemode.kixi.model.Role;
 import ao.creativemode.kixi.repository.RoleRepository;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
-import org.mockito.InjectMocks;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.time.LocalDateTime;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class RoleServiceTest {
 
     @Mock
     private RoleRepository repository;
 
-    @InjectMocks
-    private RoleService service;
-
-    private Role roleEntity;
-    private RoleRequest roleRequest;
+    private RoleService roleService;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-
-        roleEntity = new Role("ADMIN", "Administrador do sistema");
-        roleEntity.setId(1L);
-        roleEntity.setCreatedAt(LocalDateTime.now());
-        roleEntity.setUpdatedAt(LocalDateTime.now());
-        roleEntity.setDeletedAt(null);
-
-        roleRequest = new RoleRequest("ADMIN", "Administrador do sistema");
+        roleService = new RoleService(repository);
     }
 
     @Test
     void testFindAllActive() {
-        when(repository.findAllByDeletedAtIsNull()).thenReturn(Flux.just(roleEntity));
+        Role role1 = new Role(1L, "ADMIN", "Administrator", LocalDateTime.now(), LocalDateTime.now(), null);
+        Role role2 = new Role(2L, "USER", "Standard User", LocalDateTime.now(), LocalDateTime.now(), null);
 
-        StepVerifier.create(service.findAllActive())
-                .expectNextMatches(response -> response.id().equals(1L) && response.name().equals("ADMIN"))
-                .verifyComplete();
+        when(repository.findAllByDeletedAtIsNull())
+            .thenReturn(Flux.just(role1, role2));
+
+        StepVerifier.create(roleService.findAllActive())
+            .expectNextCount(2)
+            .verifyComplete();
 
         verify(repository, times(1)).findAllByDeletedAtIsNull();
     }
 
     @Test
     void testFindAllDeleted() {
-        when(repository.findAllByDeletedAtIsNotNull()).thenReturn(Flux.just(roleEntity));
+        Role role = new Role(1L, "ADMIN", "Administrator", LocalDateTime.now(), LocalDateTime.now(), LocalDateTime.now());
 
-        StepVerifier.create(service.findAllDeleted())
-                .expectNextMatches(response -> response.id().equals(1L) && response.name().equals("ADMIN"))
-                .verifyComplete();
+        when(repository.findAllByDeletedAtIsNotNull())
+            .thenReturn(Flux.just(role));
+
+        StepVerifier.create(roleService.findAllDeleted())
+            .expectNextCount(1)
+            .verifyComplete();
 
         verify(repository, times(1)).findAllByDeletedAtIsNotNull();
     }
 
     @Test
     void testFindByIdActive_Success() {
-        when(repository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Mono.just(roleEntity));
+        Long roleId = 1L;
+        Role role = new Role(roleId, "ADMIN", "Administrator", LocalDateTime.now(), LocalDateTime.now(), null);
 
-        StepVerifier.create(service.findByIdActive(1L))
-                .expectNextMatches(response -> response.id().equals(1L) && response.name().equals("ADMIN"))
-                .verifyComplete();
+        when(repository.findByIdAndDeletedAtIsNull(roleId))
+            .thenReturn(Mono.just(role));
 
-        verify(repository, times(1)).findByIdAndDeletedAtIsNull(1L);
+        StepVerifier.create(roleService.findByIdActive(roleId))
+            .expectNextMatches(response -> response.id().equals(roleId) && response.name().equals("ADMIN"))
+            .verifyComplete();
+
+        verify(repository, times(1)).findByIdAndDeletedAtIsNull(roleId);
     }
 
     @Test
     void testFindByIdActive_NotFound() {
-        when(repository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Mono.empty());
+        Long roleId = 999L;
 
-        StepVerifier.create(service.findByIdActive(999L))
-                .expectErrorMatches(e -> e instanceof ApiException)
-                .verify();
+        when(repository.findByIdAndDeletedAtIsNull(roleId))
+            .thenReturn(Mono.empty());
 
-        verify(repository, times(1)).findByIdAndDeletedAtIsNull(999L);
+        StepVerifier.create(roleService.findByIdActive(roleId))
+            .expectError(ApiException.class)
+            .verify();
+
+        verify(repository, times(1)).findByIdAndDeletedAtIsNull(roleId);
     }
 
     @Test
     void testCreate_Success() {
-        when(repository.findByNameAndDeletedAtIsNull("ADMIN")).thenReturn(Mono.empty());
-        when(repository.save(any(Role.class))).thenReturn(Mono.just(roleEntity));
+        RoleRequest request = new RoleRequest("admin", "Administrator Role");
 
-        StepVerifier.create(service.create(roleRequest))
-                .expectNextMatches(response -> response.name().equals("ADMIN"))
-                .verifyComplete();
+        Role savedRole = new Role(1L, "ADMIN", "Administrator Role", LocalDateTime.now(), LocalDateTime.now(), null);
+        when(repository.save(any(Role.class)))
+            .thenReturn(Mono.just(savedRole));
 
-        verify(repository, times(1)).findByNameAndDeletedAtIsNull("ADMIN");
+        StepVerifier.create(roleService.create(request))
+            .expectNextMatches(response -> response.name().equals("ADMIN"))
+            .verifyComplete();
+
         verify(repository, times(1)).save(any(Role.class));
     }
 
     @Test
-    void testCreate_NameAlreadyExists() {
-        when(repository.findByNameAndDeletedAtIsNull("ADMIN")).thenReturn(Mono.just(roleEntity));
+    void testCreate_NameExists() {
+        RoleRequest request = new RoleRequest("ADMIN", "Administrator Role");
 
-        StepVerifier.create(service.create(roleRequest))
-                .expectErrorMatches(e -> e instanceof ApiException)
-                .verify();
+        when(repository.save(any(Role.class)))
+            .thenReturn(Mono.error(new DataIntegrityViolationException("Duplicate name")));
 
-        verify(repository, times(1)).findByNameAndDeletedAtIsNull("ADMIN");
-        verify(repository, never()).save(any(Role.class));
+        StepVerifier.create(roleService.create(request))
+            .expectError(ApiException.class)
+            .verify();
+
+        verify(repository, times(1)).save(any(Role.class));
     }
 
     @Test
     void testUpdate_Success() {
-        Role updatedEntity = new Role("EDITOR", "Editor do sistema");
-        updatedEntity.setId(1L);
-        updatedEntity.setCreatedAt(LocalDateTime.now());
-        updatedEntity.setUpdatedAt(LocalDateTime.now());
+        Long roleId = 1L;
+        RoleRequest request = new RoleRequest("MODERATOR", "Moderator Role");
 
-        when(repository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Mono.just(roleEntity));
-        when(repository.findByNameAndIdNotAndDeletedAtIsNull("EDITOR", 1L)).thenReturn(Mono.empty());
-        when(repository.save(any(Role.class))).thenReturn(Mono.just(updatedEntity));
+        Role existingRole = new Role(roleId, "ADMIN", "Old Description", LocalDateTime.now(), LocalDateTime.now(), null);
 
-        RoleRequest updateRequest = new RoleRequest("EDITOR", "Editor do sistema");
+        when(repository.findByIdAndDeletedAtIsNull(roleId))
+            .thenReturn(Mono.just(existingRole));
 
-        StepVerifier.create(service.update(1L, updateRequest))
-                .expectNextMatches(response -> response.name().equals("EDITOR"))
-                .verifyComplete();
+        Role updatedRole = new Role(roleId, "MODERATOR", "Moderator Role", LocalDateTime.now(), LocalDateTime.now(), null);
+        when(repository.save(any(Role.class)))
+            .thenReturn(Mono.just(updatedRole));
 
-        verify(repository, times(1)).findByIdAndDeletedAtIsNull(1L);
-        verify(repository, times(1)).findByNameAndIdNotAndDeletedAtIsNull("EDITOR", 1L);
+        StepVerifier.create(roleService.update(roleId, request))
+            .expectNextMatches(response -> response.name().equals("MODERATOR"))
+            .verifyComplete();
+
+        verify(repository, times(1)).findByIdAndDeletedAtIsNull(roleId);
         verify(repository, times(1)).save(any(Role.class));
     }
 
     @Test
     void testUpdate_NotFound() {
-        when(repository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Mono.empty());
+        Long roleId = 999L;
+        RoleRequest request = new RoleRequest("MODERATOR", "Moderator Role");
 
-        StepVerifier.create(service.update(999L, roleRequest))
-                .expectErrorMatches(e -> e instanceof ApiException)
-                .verify();
+        when(repository.findByIdAndDeletedAtIsNull(roleId))
+            .thenReturn(Mono.empty());
 
-        verify(repository, times(1)).findByIdAndDeletedAtIsNull(999L);
+        StepVerifier.create(roleService.update(roleId, request))
+            .expectError(ApiException.class)
+            .verify();
+
+        verify(repository, times(1)).findByIdAndDeletedAtIsNull(roleId);
         verify(repository, never()).save(any(Role.class));
     }
 
     @Test
-    void testUpdate_NameAlreadyExists() {
-        Role anotherRole = new Role("EDITOR", "Editor do sistema");
-        anotherRole.setId(2L);
+    void testUpdate_NameExists() {
+        Long roleId = 1L;
+        RoleRequest request = new RoleRequest("ADMIN", "Updated Role");
 
-        when(repository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Mono.just(roleEntity));
-        when(repository.findByNameAndIdNotAndDeletedAtIsNull("EDITOR", 1L)).thenReturn(Mono.just(anotherRole));
+        Role existingRole = new Role(roleId, "MODERATOR", "Old Role", LocalDateTime.now(), LocalDateTime.now(), null);
 
-        RoleRequest updateRequest = new RoleRequest("EDITOR", "Editor do sistema");
+        when(repository.findByIdAndDeletedAtIsNull(roleId))
+            .thenReturn(Mono.just(existingRole));
 
-        StepVerifier.create(service.update(1L, updateRequest))
-                .expectErrorMatches(e -> e instanceof ApiException)
-                .verify();
+        when(repository.save(any(Role.class)))
+            .thenReturn(Mono.error(new DataIntegrityViolationException("Duplicate name")));
 
-        verify(repository, times(1)).findByIdAndDeletedAtIsNull(1L);
-        verify(repository, times(1)).findByNameAndIdNotAndDeletedAtIsNull("EDITOR", 1L);
-        verify(repository, never()).save(any(Role.class));
+        StepVerifier.create(roleService.update(roleId, request))
+            .expectError(ApiException.class)
+            .verify();
+
+        verify(repository, times(1)).findByIdAndDeletedAtIsNull(roleId);
+        verify(repository, times(1)).save(any(Role.class));
     }
 
     @Test
     void testSoftDelete_Success() {
-        when(repository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Mono.just(roleEntity));
-        when(repository.save(any(Role.class))).thenReturn(Mono.just(roleEntity));
+        Long roleId = 1L;
+        Role role = new Role(roleId, "ADMIN", "Administrator", LocalDateTime.now(), LocalDateTime.now(), null);
 
-        StepVerifier.create(service.softDelete(1L))
-                .verifyComplete();
+        when(repository.findByIdAndDeletedAtIsNull(roleId))
+            .thenReturn(Mono.just(role));
 
-        verify(repository, times(1)).findByIdAndDeletedAtIsNull(1L);
+        Role deletedRole = new Role(roleId, "ADMIN", "Administrator", LocalDateTime.now(), LocalDateTime.now(), LocalDateTime.now());
+        when(repository.save(any(Role.class)))
+            .thenReturn(Mono.just(deletedRole));
+
+        StepVerifier.create(roleService.softDelete(roleId))
+            .verifyComplete();
+
+        verify(repository, times(1)).findByIdAndDeletedAtIsNull(roleId);
         verify(repository, times(1)).save(any(Role.class));
     }
 
     @Test
     void testSoftDelete_NotFound() {
-        when(repository.findByIdAndDeletedAtIsNull(999L)).thenReturn(Mono.empty());
+        Long roleId = 999L;
 
-        StepVerifier.create(service.softDelete(999L))
-                .expectErrorMatches(e -> e instanceof ApiException)
-                .verify();
+        when(repository.findByIdAndDeletedAtIsNull(roleId))
+            .thenReturn(Mono.empty());
 
-        verify(repository, times(1)).findByIdAndDeletedAtIsNull(999L);
+        StepVerifier.create(roleService.softDelete(roleId))
+            .expectError(ApiException.class)
+            .verify();
+
+        verify(repository, times(1)).findByIdAndDeletedAtIsNull(roleId);
         verify(repository, never()).save(any(Role.class));
     }
 
     @Test
     void testRestore_Success() {
-        roleEntity.markAsDeleted();
+        Long roleId = 1L;
+        Role deletedRole = new Role(roleId, "ADMIN", "Administrator", LocalDateTime.now(), LocalDateTime.now(), LocalDateTime.now());
 
-        when(repository.findByIdAndDeletedAtIsNotNull(1L)).thenReturn(Mono.just(roleEntity));
-        when(repository.save(any(Role.class))).thenReturn(Mono.just(roleEntity));
+        when(repository.findByIdAndDeletedAtIsNotNull(roleId))
+            .thenReturn(Mono.just(deletedRole));
 
-        StepVerifier.create(service.restore(1L))
-                .verifyComplete();
+        Role restoredRole = new Role(roleId, "ADMIN", "Administrator", LocalDateTime.now(), LocalDateTime.now(), null);
+        when(repository.save(any(Role.class)))
+            .thenReturn(Mono.just(restoredRole));
 
-        verify(repository, times(1)).findByIdAndDeletedAtIsNotNull(1L);
+        StepVerifier.create(roleService.restore(roleId))
+            .verifyComplete();
+
+        verify(repository, times(1)).findByIdAndDeletedAtIsNotNull(roleId);
         verify(repository, times(1)).save(any(Role.class));
     }
 
     @Test
     void testRestore_NotDeleted() {
-        when(repository.findByIdAndDeletedAtIsNotNull(1L)).thenReturn(Mono.empty());
+        Long roleId = 1L;
 
-        StepVerifier.create(service.restore(1L))
-                .expectErrorMatches(e -> e instanceof ApiException)
-                .verify();
+        when(repository.findByIdAndDeletedAtIsNotNull(roleId))
+            .thenReturn(Mono.empty());
 
-        verify(repository, times(1)).findByIdAndDeletedAtIsNotNull(1L);
+        StepVerifier.create(roleService.restore(roleId))
+            .expectError(ApiException.class)
+            .verify();
+
+        verify(repository, times(1)).findByIdAndDeletedAtIsNotNull(roleId);
         verify(repository, never()).save(any(Role.class));
     }
 }
