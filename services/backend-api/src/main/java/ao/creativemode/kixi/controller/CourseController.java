@@ -99,4 +99,14 @@ public class CourseController {
         return service.restore(id)
                 .thenReturn(ResponseEntity.ok().build());
     }
+
+    /**
+     * Permanently deletes a soft-deleted course.
+     * Only deleted courses can be permanently removed.
+     */
+    @DeleteMapping("/{id}/hard-delete")
+    public Mono<ResponseEntity<Void>> hardDelete(@PathVariable Long id) {
+        return service.hardDelete(id)
+                .thenReturn(ResponseEntity.status(NO_CONTENT).build());
+    }
 }
