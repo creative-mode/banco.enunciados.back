@@ -110,14 +110,3 @@ public class UserController {
                 .thenReturn(ResponseEntity.ok().build());
     }
 }
-            LOG.warn("Requisição RESTORE com ID inválido: {}", id);
-            return Mono.error(ApiException.badRequest("ID deve ser um número positivo"));
-        }
-
-        LOG.info("Restaurando utilizador: id={}", id);
-        return service.restore(id)
-                .thenReturn(ResponseEntity.ok().build())
-                .doOnSuccess(response -> LOG.info("Utilizador restaurado: id={}", id))
-                .doOnError(error -> LOG.error("Erro ao restaurar utilizador id={}: {}", id, error.getMessage()));
-    }
-}
