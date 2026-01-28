@@ -1,7 +1,7 @@
 package ao.creativemode.kixi.repository;
 
 import ao.creativemode.kixi.model.Course;
-import org.springframework.data.r2dbc.repository.ReactiveCrudRepository;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -12,6 +12,8 @@ public interface CourseRepository extends ReactiveCrudRepository<Course, Long> {
     Flux<Course> findAllByDeletedAtIsNull();
 
     Flux<Course> findAllByDeletedAtIsNotNull();
+
+    Mono<Course> findByIdAndDeletedAtIsNotNull(Long id);
 
     Mono<Course> findByCodeAndDeletedAtIsNull(String code);
 
