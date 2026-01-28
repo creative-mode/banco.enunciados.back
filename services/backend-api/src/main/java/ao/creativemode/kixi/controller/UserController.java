@@ -109,4 +109,14 @@ public class UserController {
         return service.restore(id)
                 .thenReturn(ResponseEntity.ok().build());
     }
+
+    /**
+     * Permanently deletes a soft-deleted user.
+     * Only deleted users can be permanently removed.
+     */
+    @DeleteMapping("/{id}/hard-delete")
+    public Mono<ResponseEntity<Void>> hardDelete(@PathVariable Long id) {
+        return service.hardDelete(id)
+                .thenReturn(ResponseEntity.status(NO_CONTENT).build());
+    }
 }

@@ -4,6 +4,8 @@ import ao.creativemode.kixi.model.User;
 import ao.creativemode.kixi.repository.UserRepository;
 import ao.creativemode.kixi.dto.users.UserResponse;
 import ao.creativemode.kixi.dto.users.UserRequest;
+import ao.creativemode.kixi.dto.users.UserResponseWithAccount;
+import ao.creativemode.kixi.dto.accounts.AccountBasicResponse;
 import ao.creativemode.kixi.common.exception.ApiException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -93,6 +95,14 @@ public class UserService {
                     entity.setDeletedAt(null);
                     return repository.save(entity);
                 })
+                .then();
+    }
+
+    public Mono<Void> hardDelete(Long id) {
+        return repository.findByIdAndDeletedAtIsNotNull(id)
+                .switchIfEmpty(
+                    Mono.error(ApiException.badRequest("Only deleted users can be permanently removed")))
+                .flatMap(repository::delete)
                 .then();
     }
 
