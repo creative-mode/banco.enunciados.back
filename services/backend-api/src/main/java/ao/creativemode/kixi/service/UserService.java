@@ -1,9 +1,13 @@
 package ao.creativemode.kixi.service;
 
 import ao.creativemode.kixi.model.User;
+import ao.creativemode.kixi.model.Account;
 import ao.creativemode.kixi.repository.UserRepository;
+import ao.creativemode.kixi.repository.AccountRepository;
 import ao.creativemode.kixi.dto.users.UserResponse;
 import ao.creativemode.kixi.dto.users.UserRequest;
+import ao.creativemode.kixi.dto.users.UserResponseWithAccount;
+import ao.creativemode.kixi.dto.accounts.AccountBasicResponse;
 import ao.creativemode.kixi.common.exception.ApiException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -15,9 +19,11 @@ import java.time.LocalDateTime;
 public class UserService {
 
     private final UserRepository repository;
+    private final AccountRepository accountRepository;
 
-    public UserService(UserRepository repository) {
+    public UserService(UserRepository repository, AccountRepository accountRepository) {
         this.repository = repository;
+        this.accountRepository = accountRepository;
     }
 
     public Flux<UserResponse> findAllActive() {
@@ -34,6 +40,14 @@ public class UserService {
         return repository.findByIdAndDeletedAtIsNull(id)
                 .switchIfEmpty(Mono.error(ApiException.notFound("User not found")))
                 .map(this::toResponse);
+    }
+
+    public Mono<UserResponseWithAccount> findByIdActiveWithAccount(Long id) {
+        return repository.findByIdAndDeletedAtIsNull(id)
+                .switchIfEmpty(Mono.error(ApiException.notFound("User not found")))
+                .flatMap(user -> accountRepository.findByIdAndDeletedAtIsNull(user.getAccountId())
+                        .switchIfEmpty(Mono.error(ApiException.notFound("Account not found")))
+                        .map(account -> toResponseWithAccount(user, account)));
     }
 
     public Flux<UserResponse> findByAccountIdActive(Long accountId) {
@@ -96,6 +110,14 @@ public class UserService {
                 .then();
     }
 
+    public Mono<Void> hardDelete(Long id) {
+        return repository.findByIdAndDeletedAtIsNotNull(id)
+                .switchIfEmpty(
+                    Mono.error(ApiException.badRequest("Only deleted users can be permanently removed")))
+                .flatMap(repository::delete)
+                .then();
+    }
+
     private UserResponse toResponse(User entity) {
         return new UserResponse(
                 entity.getId(),
@@ -106,6 +128,25 @@ public class UserService {
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
                 entity.getDeletedAt()
+        );
+    }
+
+    private UserResponseWithAccount toResponseWithAccount(User user, Account account) {
+        AccountBasicResponse accountResponse = new AccountBasicResponse(
+                account.getId(),
+                account.getUsername(),
+                account.getEmail()
+        );
+
+        return new UserResponseWithAccount(
+                user.getId(),
+                accountResponse,
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhoto(),
+                user.getCreatedAt(),
+                user.getUpdatedAt(),
+                user.getDeletedAt()
         );
     }
 }
