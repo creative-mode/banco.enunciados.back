@@ -1,2 +1,32 @@
 # docker-compose.yml
 # Add your service definitions here
+# docker-compose.yml
+
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_DB: myapp_db
+      POSTGRES_USER: myapp_user
+      POSTGRES_PASSWORD: myapp_password
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kixi_app
+    depends_on:
+      - postgres
+    environment:
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/myapp_db
+      SPRING_R2DBC_USERNAME: myapp_user
+      SPRING_R2DBC_PASSWORD: myapp_password
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
